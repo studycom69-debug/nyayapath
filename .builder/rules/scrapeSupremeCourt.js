@@ -11,13 +11,15 @@ async function scrapeNJDGCases() {
   // Sample: Wait for the case list table selector
   await page.waitForSelector("#caseListTable");
 
-  const cases = await page.$$eval("#caseListTable tbody tr", rows =>
-    rows.map(row => {
+  const cases = await page.$$eval("#caseListTable tbody tr", (rows) =>
+    rows.map((row) => {
       const caseNum = row.querySelector("td:nth-child(1)")?.textContent.trim();
       const caseYear = row.querySelector("td:nth-child(2)")?.textContent.trim();
-      const caseStatus = row.querySelector("td:nth-child(5)")?.textContent.trim();
+      const caseStatus = row
+        .querySelector("td:nth-child(5)")
+        ?.textContent.trim();
       return { caseNum, caseYear, caseStatus };
-    })
+    }),
   );
 
   console.log("NJDG Cases:", cases);

@@ -1,5 +1,8 @@
 import { defineConfig } from "vite";
-import path from "path";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Server build configuration
 export default defineConfig({

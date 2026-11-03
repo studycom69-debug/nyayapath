@@ -13,21 +13,21 @@ export default function SavedNews() {
 
   useEffect(() => {
     // Load saved news from localStorage
-    const saved = localStorage.getItem('savedNews');
+    const saved = localStorage.getItem("savedNews");
     if (saved) {
       setSavedNews(JSON.parse(saved));
     }
   }, []);
 
   const removeSaved = (id: string) => {
-    const updated = savedNews.filter(item => item.id !== id);
+    const updated = savedNews.filter((item) => item.id !== id);
     setSavedNews(updated);
-    localStorage.setItem('savedNews', JSON.stringify(updated));
+    localStorage.setItem("savedNews", JSON.stringify(updated));
   };
 
   const clearAll = () => {
     setSavedNews([]);
-    localStorage.removeItem('savedNews');
+    localStorage.removeItem("savedNews");
   };
 
   if (savedNews.length === 0) {
@@ -46,7 +46,9 @@ export default function SavedNews() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Saved Articles ({savedNews.length})</h2>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          Saved Articles ({savedNews.length})
+        </h2>
         <button
           onClick={clearAll}
           className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
@@ -57,8 +59,8 @@ export default function SavedNews() {
 
       <ul className="space-y-6">
         {savedNews.map((item) => (
-          <li 
-            key={item.id} 
+          <li
+            key={item.id}
             className="border-l-4 border-yellow-500 bg-white dark:bg-gray-800 p-6 rounded-r-lg shadow-sm"
           >
             <div className="flex justify-between items-start">
@@ -67,7 +69,7 @@ export default function SavedNews() {
                   {item.title}
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                  📅 {new Date(item.date).toLocaleDateString('en-IN')}
+                  📅 {new Date(item.date).toLocaleDateString("en-IN")}
                 </p>
                 <p className="text-gray-700 dark:text-gray-300 mb-4 line-clamp-2">
                   {item.content}

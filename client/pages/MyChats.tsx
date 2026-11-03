@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
+import { useAuth } from "@/context/AuthContext";
 import { MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -12,85 +13,116 @@ interface ChatThread {
   unread_count: number;
 }
 
+const DEMO_USER_CHATS: ChatThread[] = [
+  {
+    lawyer_id: "lawyer-1-demo",
+    lawyer_name: "Adv. Rajesh Sharma",
+    last_message:
+      "Please share the agreement copy so we can verify the jurisdiction clause.",
+    last_message_time: new Date(Date.now() - 3600000 * 2).toISOString(),
+    unread_count: 1,
+  },
+  {
+    lawyer_id: "lawyer-2-demo",
+    lawyer_name: "Adv. Priya Deshmukh",
+    last_message:
+      "The statutory notice period of 15 days is required before filing under Section 138.",
+    last_message_time: new Date(Date.now() - 3600000 * 24).toISOString(),
+    unread_count: 0,
+  },
+];
+
 export default function MyChats() {
-  const [chats, setChats] = useState<ChatThread[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const { user: currentUser } = useAuth();
+  const [chats, setChats] = useState<ChatThread[]>(DEMO_USER_CHATS);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+  if (currentUser) {
     fetchUserChats();
-  }, []);
+  }
+}, [currentUser]);
 
-  // Real-time notifications
-  useEffect(() => {
-    if (!currentUser) return;
+// Real-time notifications
+useEffect(() => {
+  if (!currentUser) return;
 
-    const subscription = supabase
-      .channel('user_messages')
-      .on('postgres_changes', 
-        { event: 'INSERT', schema: 'public', table: 'messages' },
-        async (payload) => {
-          if (payload.new.receiver_id === currentUser?.id) {
-            const { data: profile } = await supabase
-              .from("profiles")
-              .select("full_name")
-              .eq("id", payload.new.sender_id)
-              .single();
-            
-            toast.success(`💬 New message from ${profile?.full_name || 'Lawyer'}`, {
-              description: payload.new.content.substring(0, 50) + '...',
+  const subscription = supabase
+    .channel("user_messages")
+    .on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "messages" },
+      async (payload) => {
+        if (payload.new.receiver_id === currentUser?.id) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("full_name")
+            .eq("id", payload.new.sender_id)
+            .maybeSingle();
+
+          toast.success(
+            `💬 New message from ${profile?.full_name || "Lawyer"}`,
+            {
+              description: payload.new.content.substring(0, 50) + "...",
               action: {
-                label: 'View',
-                onClick: () => window.location.href = `/chat/${payload.new.sender_id}`
-              }
-            });
-            
-            fetchUserChats();
-          }
+                label: "View",
+                onClick: () =>
+                  (window.location.href = `/chat/${payload.new.sender_id}`),
+              },
+            },
+          );
+
+          fetchUserChats();
         }
-      )
-      .subscribe();
+      },
+    )
+    .subscribe();
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [currentUser]);
+  return () => {
+    subscription.unsubscribe();
+  };
+}, [currentUser]);
 
-  async function fetchUserChats() {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) return;
-      setCurrentUser(user);
+async function fetchUserChats() {
+  try {
+      if (!currentUser) {
+        setChats(DEMO_USER_CHATS);
+        return;
+      }
 
       const { data: messages } = await supabase
         .from("messages")
         .select("sender_id, receiver_id, content, created_at")
-        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+        .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
         .order("created_at", { ascending: false });
 
-      if (!messages) return;
+      if (!messages || messages.length === 0) {
+        setChats(DEMO_USER_CHATS);
+        return;
+      }
 
       const chatMap = new Map();
 
       for (const msg of messages) {
-        const lawyerId = msg.sender_id === user.id ? msg.receiver_id : msg.sender_id;
+        const lawyerId =
+        msg.sender_id === currentUser.id ? msg.receiver_id : msg.sender_id;
 
         if (!chatMap.has(lawyerId)) {
           const { count } = await supabase
             .from("messages")
-            .select("*", { count: 'exact', head: true })
+            .select("*", { count: "exact", head: true })
             .eq("sender_id", lawyerId)
-            .eq("receiver_id", user.id)
-            .gt("created_at", localStorage.getItem(`last_read_${lawyerId}`) || '2020-01-01');
+            .eq("receiver_id", currentUser.id)
+            .gt(
+              "created_at",
+              localStorage.getItem(`last_read_${lawyerId}`) || "2020-01-01",
+            );
 
           const { data: profile } = await supabase
             .from("profiles")
             .select("full_name")
             .eq("id", lawyerId)
-            .single();
+            .maybeSingle();
 
           chatMap.set(lawyerId, {
             lawyer_id: lawyerId,
@@ -133,6 +165,25 @@ export default function MyChats() {
           </p>
         </div>
 
+        {!currentUser && (
+          <div className="mb-6 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 flex justify-between items-center">
+            <div>
+              <p className="text-sm font-semibold text-blue-900 dark:text-blue-200">
+                Sign in to sync your active chats
+              </p>
+              <p className="text-xs text-blue-700 dark:text-blue-300">
+                You are currently browsing as guest.
+              </p>
+            </div>
+            <Link
+              to="/login"
+              className="px-4 py-2 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700"
+            >
+              Sign In
+            </Link>
+          </div>
+        )}
+
         {chats.length === 0 ? (
           <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
             <MessageCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
@@ -155,7 +206,12 @@ export default function MyChats() {
               <Link
                 key={chat.lawyer_id}
                 to={`/chat/${chat.lawyer_id}`}
-                onClick={() => localStorage.setItem(`last_read_${chat.lawyer_id}`, new Date().toISOString())}
+                onClick={() =>
+                  localStorage.setItem(
+                    `last_read_${chat.lawyer_id}`,
+                    new Date().toISOString(),
+                  )
+                }
                 className="block bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow p-6 relative"
               >
                 {chat.unread_count > 0 && (
@@ -163,7 +219,7 @@ export default function MyChats() {
                     {chat.unread_count} new
                   </div>
                 )}
-                
+
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
@@ -179,7 +235,9 @@ export default function MyChats() {
                         </p>
                       </div>
                     </div>
-                    <p className={`text-sm ${chat.unread_count > 0 ? 'font-semibold text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'} line-clamp-2 ml-15`}>
+                    <p
+                      className={`text-sm ${chat.unread_count > 0 ? "font-semibold text-gray-900 dark:text-white" : "text-gray-600 dark:text-gray-400"} line-clamp-2 ml-15`}
+                    >
                       {chat.last_message}
                     </p>
                   </div>

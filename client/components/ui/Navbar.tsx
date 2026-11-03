@@ -1,55 +1,25 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { supabase } from "../../lib/supabaseClient";
-import { Menu, X, User, LogOut, Scale } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import {
+  Menu,
+  X,
+  User,
+  LogOut,
+  Scale,
+  ChevronDown,
+  Wrench,
+} from "lucide-react";
 
 export default function Navbar() {
-  const [user, setUser] = useState<any>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const { user, role: userRole, signOut } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [toolsDropdownOpen, setToolsDropdownOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
-  useEffect(() => {
-    const getUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      
-      if (user) {
-        setUser(user);
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .single();
-        setUserRole(profile?.role || null);
-      }
-    };
-
-    getUser();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setUser(session?.user || null);
-        if (session?.user) {
-          supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", session.user.id)
-            .single()
-            .then(({ data }) => setUserRole(data?.role || null));
-        } else {
-          setUserRole(null);
-        }
-      }
-    );
-
-    return () => authListener.subscription.unsubscribe();
-  }, []);
-
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await signOut();
     navigate("/");
   };
 
@@ -57,12 +27,55 @@ export default function Navbar() {
     return location.pathname === path;
   };
 
-  const publicLinks = [
+  const primaryLinks = [
     { path: "/", label: "Home" },
     { path: "/lawyers", label: "Find Lawyers" },
+    { path: "/case-search", label: "Case Law Search" },
     { path: "/court-news", label: "Court News" },
-    { path: "/case-search", label: "Case Search" },
     { path: "/ai-assistant", label: "AI Assistant" },
+  ];
+
+  const toolLinks = [
+    {
+      path: "/voice-advocate",
+      label: "🎙️ NyayaVoice (AI Advocate)",
+      desc: "Speak & listen in Hindi or English",
+    },
+    {
+      path: "/notice-demystifier",
+      label: "📄 Notice & Summons Demystifier",
+      desc: "Decode scary legal notices & draft replies",
+    },
+    {
+      path: "/citizen-rights",
+      label: "Police & Citizen Rights",
+      desc: "Know what police can & cannot do",
+    },
+    {
+      path: "/bail-checker",
+      label: "Bail & Offence Checker",
+      desc: "Check bailable status & IPC ↔ BNS",
+    },
+    {
+      path: "/legal-notice",
+      label: "Legal Notice Generator",
+      desc: "Draft professional legal notices",
+    },
+    {
+      path: "/case-strategy",
+      label: "Case Strategy Planner",
+      desc: "Roadmap, forms & legal sections",
+    },
+    {
+      path: "/cost-estimator",
+      label: "Court Cost Estimator",
+      desc: "Estimated court and lawyer fees",
+    },
+    {
+      path: "/lawyer-ai-match",
+      label: "AI Lawyer Recommendation",
+      desc: "Smart advocate matching",
+    },
   ];
 
   const userLinks = [
@@ -70,136 +83,152 @@ export default function Navbar() {
     { path: "/ask-question", label: "Ask Question" },
     { path: "/my-chats", label: "My Chats" },
     { path: "/saved-news", label: "Saved News" },
-    { path: "/edit-profile", label: "Edit Profile" },
-  ];
-
-  const lawyerLinks = [
-    { path: "/lawyer", label: "Dashboard" },
-    { path: "/lawyer-chats", label: "Client Chats" },
-  ];
-
-  const toolLinks = [
-    { path: "/legal-notice", label: "Legal Notice" },
-    { path: "/case-strategy", label: "Case Strategy" },
-    { path: "/cost-estimator", label: "Cost Estimator" },
-    { path: "/lawyer-ai-match", label: "AI Lawyer Match" },
+    { path: "/edit-profile", label: "Profile" },
   ];
 
   return (
-    <nav className="bg-white dark:bg-gray-800 shadow-lg sticky top-0 z-50">
+    <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
-          <div className="flex items-center">
-            <Link to="/" className="flex items-center gap-2">
-              <Scale className="h-8 w-8 text-blue-600" />
-              <span className="text-xl font-bold text-gray-900 dark:text-white">
+          {/* Logo & Primary Links */}
+          <div className="flex items-center gap-6">
+            <Link to="/" className="flex items-center gap-2.5">
+              <div className="h-9 w-9 bg-primary/10 rounded-xl flex items-center justify-center">
+                <Scale className="h-5 w-5 text-primary" />
+              </div>
+              <span className="text-xl font-extrabold text-gray-900 dark:text-white tracking-tight">
                 NyayaPath
               </span>
             </Link>
+
+            {/* Desktop Navigation */}
+            <div className="hidden lg:flex items-center space-x-1">
+              {primaryLinks.map((link) => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${isActivePath(link.path)
+                      ? "bg-primary text-white"
+                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
+
+              {/* Legal AI Tools Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setToolsDropdownOpen(!toolsDropdownOpen)}
+                  onBlur={() =>
+                    setTimeout(() => setToolsDropdownOpen(false), 200)
+                  }
+                  className={`px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition-colors ${toolLinks.some((t) => isActivePath(t.path))
+                      ? "bg-primary text-white"
+                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    }`}
+                >
+                  <Wrench className="h-3.5 w-3.5" />
+                  <span>AI Tools</span>
+                  <ChevronDown
+                    className={`h-3.5 w-3.5 transition-transform ${toolsDropdownOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+
+                {toolsDropdownOpen && (
+                  <div className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 p-2 z-50">
+                    {toolLinks.map((tool) => (
+                      <Link
+                        key={tool.path}
+                        to={tool.path}
+                        onClick={() => setToolsDropdownOpen(false)}
+                        className={`block px-3 py-2 rounded-lg text-sm transition-colors ${isActivePath(tool.path)
+                            ? "bg-primary/10 text-primary font-bold"
+                            : "hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                          }`}
+                      >
+                        <div className="font-semibold text-gray-900 dark:text-white text-xs">
+                          {tool.label}
+                        </div>
+                        <div className="text-[11px] text-gray-500 dark:text-gray-400">
+                          {tool.desc}
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Direct access to My Questions & My Chats */}
+              <Link
+                to="/my-questions"
+                className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${isActivePath("/my-questions")
+                    ? "bg-primary text-white"
+                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  }`}
+              >
+                My Questions
+              </Link>
+
+              <Link
+                to="/my-chats"
+                className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${isActivePath("/my-chats")
+                    ? "bg-primary text-white"
+                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  }`}
+              >
+                My Chats
+              </Link>
+            </div>
           </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-4">
-            {publicLinks.map((link) => (
+          {/* User Auth & Profile Actions */}
+          <div className="hidden lg:flex items-center space-x-3">
+            {userRole === "lawyer" && (
               <Link
-                key={link.path}
-                to={link.path}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  isActivePath(link.path)
-                    ? "bg-blue-600 text-white"
-                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                }`}
+                to="/lawyer"
+                className="px-3 py-1.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-bold rounded-lg hover:bg-amber-500/20 transition-colors"
               >
-                {link.label}
+                Lawyer Dashboard
               </Link>
-            ))}
-
-            {user && (
-              <>
-                <div className="border-l border-gray-300 dark:border-gray-600 h-6 mx-2" />
-                {userRole === "lawyer" ? (
-                  <>
-                    {lawyerLinks.map((link) => (
-                      <Link
-                        key={link.path}
-                        to={link.path}
-                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                          isActivePath(link.path)
-                            ? "bg-blue-600 text-white"
-                            : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                        }`}
-                      >
-                        {link.label}
-                      </Link>
-                    ))}
-                  </>
-                ) : (
-                  <>
-                    {userLinks.map((link) => (
-                      <Link
-                        key={link.path}
-                        to={link.path}
-                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                          isActivePath(link.path)
-                            ? "bg-blue-600 text-white"
-                            : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                        }`}
-                      >
-                        {link.label}
-                      </Link>
-                    ))}
-                  </>
-                )}
-
-                <div className="border-l border-gray-300 dark:border-gray-600 h-6 mx-2" />
-                {toolLinks.map((link) => (
-                  <Link
-                    key={link.path}
-                    to={link.path}
-                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                      isActivePath(link.path)
-                        ? "bg-blue-600 text-white"
-                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    }`}
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-              </>
             )}
 
             {!user ? (
               <div className="flex items-center space-x-2">
                 <Link
                   to="/login"
-                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+                  className="px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                 >
-                  Login
+                  Log In
                 </Link>
                 <Link
                   to="/signup"
-                  className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+                  className="px-3.5 py-1.5 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary/90 transition-colors shadow-sm"
                 >
                   Sign Up
                 </Link>
               </div>
             ) : (
               <div className="flex items-center space-x-2">
-                <div className="flex items-center space-x-2 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-md">
-                  <User className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
-                    {user.email?.split("@")[0]}
+                <Link
+                  to="/edit-profile"
+                  className="flex items-center space-x-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-700/60 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  title="View / Edit Profile"
+                >
+                  <User className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                    {user.user_metadata?.full_name || user.email?.split("@")[0]}
                   </span>
                   {userRole && (
-                    <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
+                    <span className="text-[10px] uppercase tracking-wider font-extrabold bg-primary/10 text-primary px-1.5 py-0.5 rounded">
                       {userRole}
                     </span>
                   )}
-                </div>
+                </Link>
                 <button
                   onClick={handleLogout}
-                  className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
-                  title="Logout"
+                  className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors"
+                  title="Sign Out"
                 >
                   <LogOut className="h-4 w-4" />
                 </button>
@@ -207,127 +236,119 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Mobile menu button */}
-          <div className="md:hidden flex items-center">
+          {/* Mobile menu hamburger button */}
+          <div className="lg:hidden flex items-center">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+              className="p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+              aria-label="Toggle menu"
             >
-              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              {mobileMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
             </button>
           </div>
         </div>
 
-        {/* Mobile Navigation */}
+        {/* Mobile Navigation Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden">
-            <div className="px-2 pt-2 pb-3 space-y-1">
-              {publicLinks.map((link) => (
+          <div className="lg:hidden py-4 border-t border-gray-100 dark:border-gray-700 space-y-4">
+            <div className="space-y-1">
+              <div className="px-3 py-1 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                Navigation
+              </div>
+              {primaryLinks.map((link) => (
                 <Link
                   key={link.path}
                   to={link.path}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
-                    isActivePath(link.path)
-                      ? "bg-blue-600 text-white"
+                  className={`block px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${isActivePath(link.path)
+                      ? "bg-primary text-white"
                       : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                  }`}
+                    }`}
                 >
                   {link.label}
                 </Link>
               ))}
+            </div>
 
-              {user && (
-                <>
-                  <div className="border-t border-gray-300 dark:border-gray-600 pt-2">
-                    {userRole === "lawyer"
-                      ? lawyerLinks.map((link) => (
-                          <Link
-                            key={link.path}
-                            to={link.path}
-                            onClick={() => setMobileMenuOpen(false)}
-                            className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
-                              isActivePath(link.path)
-                                ? "bg-blue-600 text-white"
-                                : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            }`}
-                          >
-                            {link.label}
-                          </Link>
-                        ))
-                      : userLinks.map((link) => (
-                          <Link
-                            key={link.path}
-                            to={link.path}
-                            onClick={() => setMobileMenuOpen(false)}
-                            className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
-                              isActivePath(link.path)
-                                ? "bg-blue-600 text-white"
-                                : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            }`}
-                          >
-                            {link.label}
-                          </Link>
-                        ))}
-                  </div>
+            <div className="space-y-1 pt-2 border-t border-gray-100 dark:border-gray-700">
+              <div className="px-3 py-1 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                AI Legal Tools
+              </div>
+              {toolLinks.map((tool) => (
+                <Link
+                  key={tool.path}
+                  to={tool.path}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`block px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${isActivePath(tool.path)
+                      ? "bg-primary text-white"
+                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    }`}
+                >
+                  {tool.label}
+                </Link>
+              ))}
+            </div>
 
-                  <div className="border-t border-gray-300 dark:border-gray-600 pt-2">
-                    {toolLinks.map((link) => (
-                      <Link
-                        key={link.path}
-                        to={link.path}
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
-                          isActivePath(link.path)
-                            ? "bg-blue-600 text-white"
-                            : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                        }`}
-                      >
-                        {link.label}
-                      </Link>
-                    ))}
-                  </div>
-                </>
+            <div className="space-y-1 pt-2 border-t border-gray-100 dark:border-gray-700">
+              <div className="px-3 py-1 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                My Account
+              </div>
+              {userLinks.map((link) => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`block px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${isActivePath(link.path)
+                      ? "bg-primary text-white"
+                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
+              {userRole === "lawyer" && (
+                <Link
+                  to="/lawyer"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block px-3 py-2 rounded-lg text-sm font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-50"
+                >
+                  Lawyer Dashboard
+                </Link>
               )}
+            </div>
 
+            <div className="pt-3 border-t border-gray-100 dark:border-gray-700">
               {!user ? (
-                <div className="border-t border-gray-300 dark:border-gray-600 pt-2 space-y-1">
+                <div className="grid grid-cols-2 gap-2 px-3">
                   <Link
                     to="/login"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    className="py-2 text-center text-sm font-semibold border rounded-lg hover:bg-gray-50"
                   >
-                    Login
+                    Log In
                   </Link>
                   <Link
                     to="/signup"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="block px-3 py-2 rounded-md text-base font-medium bg-blue-600 text-white hover:bg-blue-700"
+                    className="py-2 text-center text-sm font-bold bg-primary text-white rounded-lg hover:bg-primary/90"
                   >
                     Sign Up
                   </Link>
                 </div>
               ) : (
-                <div className="border-t border-gray-300 dark:border-gray-600 pt-2">
-                  <div className="px-3 py-2 flex items-center space-x-2 bg-gray-100 dark:bg-gray-700 rounded-md">
-                    <User className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">
-                      {user.email?.split("@")[0]}
-                    </span>
-                    {userRole && (
-                      <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
-                        {userRole}
-                      </span>
-                    )}
-                  </div>
+                <div className="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                    {user.email}
+                  </span>
                   <button
-                    onClick={() => {
-                      handleLogout();
-                      setMobileMenuOpen(false);
-                    }}
-                    className="w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    onClick={handleLogout}
+                    className="text-xs font-bold text-red-600 hover:underline"
                   >
-                    Logout
+                    Log Out
                   </button>
                 </div>
               )}

@@ -60,7 +60,7 @@ export default function SignupPage() {
     setMessage("");
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -76,6 +76,18 @@ export default function SignupPage() {
         setMessage(error.message);
         toast.error(error.message);
       } else {
+        if (data?.user) {
+          try {
+            await supabase.from("profiles").upsert({
+              id: data.user.id,
+              full_name: fullName,
+              role: role,
+              organization: organization || "",
+            });
+          } catch (profileErr) {
+            console.warn("Profile sync deferred:", profileErr);
+          }
+        }
         setMessage("✅ Registered successfully. Please check your email.");
         toast.success("Registered successfully!");
         confetti({ particleCount: 200, spread: 70, origin: { y: 0.6 } });

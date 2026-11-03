@@ -53,14 +53,38 @@ export default function Login() {
     setMessage("");
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       if (error) {
-        setMessage(error.message);
-        toast.error(error.message);
+        const msg = error.message.toLowerCase().includes("email not confirmed")
+          ? "Please verify your email address before logging in, or disable email confirmations in Supabase Auth."
+          : error.message;
+        setMessage(msg);
+        toast.error(msg);
       } else {
+        if (data?.user) {
+          try {
+            const { data: existingProfile } = await supabase
+              .from("profiles")
+              .select("id, role")
+              .eq("id", data.user.id)
+              .maybeSingle();
+
+            if (!existingProfile) {
+              const meta = data.user.user_metadata || {};
+              await supabase.from("profiles").upsert({
+                id: data.user.id,
+                full_name: meta.full_name || "",
+                role: meta.role || "user",
+                organization: meta.organization || "",
+              });
+            }
+          } catch (profileErr) {
+            console.error("Could not sync profile on login:", profileErr);
+          }
+        }
         setMessage("✅ Logged in successfully!");
         toast.success("Logged in successfully!");
         confetti({ particleCount: 200, spread: 70, origin: { y: 0.6 } });

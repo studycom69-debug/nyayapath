@@ -9,7 +9,12 @@ interface RatingModalProps {
   onSubmit: () => void;
 }
 
-export default function RatingModal({ lawyerId, lawyerName, onClose, onSubmit }: RatingModalProps) {
+export default function RatingModal({
+  lawyerId,
+  lawyerName,
+  onClose,
+  onSubmit,
+}: RatingModalProps) {
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -23,7 +28,7 @@ export default function RatingModal({ lawyerId, lawyerName, onClose, onSubmit }:
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      
+
       if (!user) throw new Error("User not authenticated");
 
       // Check if rating already exists
@@ -32,7 +37,7 @@ export default function RatingModal({ lawyerId, lawyerName, onClose, onSubmit }:
         .select("id")
         .eq("user_id", user.id)
         .eq("lawyer_id", lawyerId)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         // Update existing rating
@@ -44,7 +49,7 @@ export default function RatingModal({ lawyerId, lawyerName, onClose, onSubmit }:
             updated_at: new Date().toISOString(),
           })
           .eq("id", existing.id);
-        
+
         if (error) throw error;
       } else {
         // Insert new rating
@@ -54,7 +59,7 @@ export default function RatingModal({ lawyerId, lawyerName, onClose, onSubmit }:
           rating,
           review: review.trim() || null,
         });
-        
+
         if (error) throw error;
       }
 

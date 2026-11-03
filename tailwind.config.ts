@@ -20,17 +20,17 @@ export default {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
-          50: '#f0f4ff',
-          100: '#d9e2ff',
-          200: '#b3c5ff',
-          300: '#8ca8ff',
-          400: '#668bff',
-          500: '#3366FF',
-          600: '#2a54e4',
-          700: '#1e3dbd',
-          800: '#122696',
-          900: '#06106f',
-          DEFAULT: 'hsl(var(--primary))', // fallback
+          50: "#f0f4ff",
+          100: "#d9e2ff",
+          200: "#b3c5ff",
+          300: "#8ca8ff",
+          400: "#668bff",
+          500: "#3366FF",
+          600: "#2a54e4",
+          700: "#1e3dbd",
+          800: "#122696",
+          900: "#06106f",
+          DEFAULT: "hsl(var(--primary))", // fallback
           foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
@@ -69,7 +69,7 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Poppins', 'ui-sans-serif', 'system-ui'],  // Added Poppins here
+        sans: ["Poppins", "ui-sans-serif", "system-ui"], // Added Poppins here
       },
       borderRadius: {
         lg: "var(--radius)",

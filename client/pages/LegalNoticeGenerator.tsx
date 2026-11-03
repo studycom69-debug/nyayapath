@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { jsPDF } from "jspdf";
 import { Loader2, Download, FileText } from "lucide-react";
@@ -17,12 +17,14 @@ export default function LegalNoticeGenerator() {
     issueType: "",
     date: "",
     location: "",
-    description: ""
+    description: "",
   });
   const [loading, setLoading] = useState(false);
   const [generatedNotice, setGeneratedNotice] = useState<string | null>(null);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -52,7 +54,7 @@ Guidelines:
    - Body: Numbered paragraphs (1. Facts, 2. Grievance, 3. Legal Demand, 4. Notice Period, 5. Consequences).
    - Closing: "Yours faithfully" followed by the sender's name as the client.
 5. Tone: Authoritative, firm, and legally sound.
-6. Format: Use Markdown for bolding headers if appropriate, but keep the text suitable for a formal letter.`
+6. Format: Use Markdown for bolding headers if appropriate, but keep the text suitable for a formal letter.`,
               },
               {
                 role: "user",
@@ -67,24 +69,25 @@ Location: ${formData.location}
 Description of Grievance:
 ${formData.description}
 
-IMPORTANT: Ensure the notice is complete and ready to print. No empty brackets.`
-              }
-            ]
-          })
-        }
+IMPORTANT: Ensure the notice is complete and ready to print. No empty brackets.`,
+              },
+            ],
+          }),
+        },
       );
 
       const data = await response.json();
       console.log("AI Response Data:", data);
-      
+
       if (!response.ok) {
         throw new Error(data.error || data.message || "AI Service Error");
       }
 
       // The openrouter-chat function returns { answer: "..." }
       // We check for 'answer' (from our edge function) or 'content' (standard AI response)
-      const result = data?.answer || data?.content || data?.choices?.[0]?.message?.content;
-      
+      const result =
+        data?.answer || data?.content || data?.choices?.[0]?.message?.content;
+
       if (result) {
         setGeneratedNotice(result);
         toast.success("Legal notice generated successfully!");
@@ -94,19 +97,26 @@ IMPORTANT: Ensure the notice is complete and ready to print. No empty brackets.`
       }
     } catch (error: any) {
       console.error("AI Generation Failed:", error);
-      
+
       // FALLBACK: If AI fails, use the professional template
       const lowerIssue = formData.issueType.toLowerCase();
       let legalProvisions = "Section 80 of the Code of Civil Procedure, 1908";
       let legalGrievance = `That my client, ${formData.yourName}, has a valid claim against you regarding ${formData.issueType}.`;
-      
+
       if (lowerIssue.includes("rent") || lowerIssue.includes("tenant")) {
         legalProvisions = "Section 106 of the Transfer of Property Act, 1882";
         legalGrievance = `That you are a tenant in the premises located at ${formData.location} and have failed to comply with the terms of the lease agreement. Specifically, ${formData.description}.`;
-      } else if (lowerIssue.includes("contract") || lowerIssue.includes("agreement")) {
+      } else if (
+        lowerIssue.includes("contract") ||
+        lowerIssue.includes("agreement")
+      ) {
         legalProvisions = "The Indian Contract Act, 1872";
         legalGrievance = `That you have committed a material breach of the agreement entered into on ${formData.date}. The details of the breach are: ${formData.description}.`;
-      } else if (lowerIssue.includes("defamation") || lowerIssue.includes("libel") || lowerIssue.includes("slander")) {
+      } else if (
+        lowerIssue.includes("defamation") ||
+        lowerIssue.includes("libel") ||
+        lowerIssue.includes("slander")
+      ) {
         legalProvisions = "Section 499 and 500 of the Indian Penal Code (IPC)";
         legalGrievance = `That you have made false and malicious statements against my client, ${formData.yourName}, which have caused significant damage to their reputation. Description of incident: ${formData.description}.`;
       }
@@ -150,14 +160,19 @@ Yours faithfully,
 (Advocate for ${formData.yourName || "[Your Name]"})
 [FOR DEMO PURPOSES ONLY]
       `.trim();
-      
+
       setGeneratedNotice(fallbackNotice);
-      
+
       // If the error explicitly mentions API key, show it. Otherwise, show a general warning.
-      if (error.message.toLowerCase().includes("api_key") || error.message.toLowerCase().includes("unauthorized")) {
+      if (
+        error.message.toLowerCase().includes("api_key") ||
+        error.message.toLowerCase().includes("unauthorized")
+      ) {
         toast.error("AI Error: OpenAI API Key issues. Check Supabase Secrets.");
       } else {
-        toast.warning("AI is currently unavailable. Using professional template.");
+        toast.warning(
+          "AI is currently unavailable. Using professional template.",
+        );
       }
     } finally {
       setLoading(false);
@@ -185,7 +200,7 @@ Yours faithfully,
   return (
     <div className="container mx-auto py-12 px-4 max-w-6xl">
       <div className="text-center mb-16">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-xs font-black uppercase tracking-widest mb-6 border border-amber-200 dark:border-amber-800"
@@ -194,10 +209,12 @@ Yours faithfully,
           <span>Automated Drafting</span>
         </motion.div>
         <h1 className="text-5xl font-black text-gray-900 dark:text-white mb-6 tracking-tight">
-          Draft Professional <span className="text-amber-600">Legal Notices.</span>
+          Draft Professional{" "}
+          <span className="text-amber-600">Legal Notices.</span>
         </h1>
         <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
-          Fill in the details, and our AI will generate a legally-sound notice tailored to your specific issue.
+          Fill in the details, and our AI will generate a legally-sound notice
+          tailored to your specific issue.
         </p>
       </div>
 
@@ -212,7 +229,9 @@ Yours faithfully,
           <CardContent className="space-y-6 p-10">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-xs font-black uppercase tracking-widest text-gray-400">Your Full Name</Label>
+                <Label className="text-xs font-black uppercase tracking-widest text-gray-400">
+                  Your Full Name
+                </Label>
                 <Input
                   name="yourName"
                   placeholder="John Doe"
@@ -222,7 +241,9 @@ Yours faithfully,
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs font-black uppercase tracking-widest text-gray-400">Opponent Name</Label>
+                <Label className="text-xs font-black uppercase tracking-widest text-gray-400">
+                  Opponent Name
+                </Label>
                 <Input
                   name="opponentName"
                   placeholder="Jane Smith"
@@ -234,7 +255,9 @@ Yours faithfully,
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs font-black uppercase tracking-widest text-gray-400">Issue Type</Label>
+              <Label className="text-xs font-black uppercase tracking-widest text-gray-400">
+                Issue Type
+              </Label>
               <Input
                 name="issueType"
                 placeholder="e.g. Non-payment, Property Dispute"
@@ -245,7 +268,9 @@ Yours faithfully,
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs font-black uppercase tracking-widest text-gray-400">Detailed Description</Label>
+              <Label className="text-xs font-black uppercase tracking-widest text-gray-400">
+                Detailed Description
+              </Label>
               <Textarea
                 name="description"
                 placeholder="Describe the issue in detail..."
@@ -257,7 +282,9 @@ Yours faithfully,
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-xs font-black uppercase tracking-widest text-gray-400">Notice Date</Label>
+                <Label className="text-xs font-black uppercase tracking-widest text-gray-400">
+                  Notice Date
+                </Label>
                 <Input
                   type="date"
                   name="date"
@@ -267,7 +294,9 @@ Yours faithfully,
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs font-black uppercase tracking-widest text-gray-400">Filing Location</Label>
+                <Label className="text-xs font-black uppercase tracking-widest text-gray-400">
+                  Filing Location
+                </Label>
                 <Input
                   name="location"
                   placeholder="e.g. Mumbai, Maharashtra"
@@ -306,7 +335,7 @@ Yours faithfully,
             {generatedNotice ? (
               <div className="flex-1 flex flex-col">
                 <div className="flex-1 bg-white dark:bg-gray-900 p-10 font-serif text-sm overflow-y-auto max-h-[650px] leading-relaxed text-gray-800 dark:text-gray-200">
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     className="prose prose-sm dark:prose-invert max-w-none 
@@ -318,7 +347,10 @@ Yours faithfully,
                   </motion.div>
                 </div>
                 <div className="p-8 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-800">
-                  <Button onClick={downloadPDF} className="w-full bg-green-600 hover:bg-green-700 text-white h-16 text-xl font-bold rounded-xl shadow-xl shadow-green-500/20 transition-all hover:scale-[1.02]">
+                  <Button
+                    onClick={downloadPDF}
+                    className="w-full bg-green-600 hover:bg-green-700 text-white h-16 text-xl font-bold rounded-xl shadow-xl shadow-green-500/20 transition-all hover:scale-[1.02]"
+                  >
                     <Download className="h-6 w-6 mr-2" />
                     Download Official PDF
                   </Button>
@@ -343,7 +375,11 @@ Yours faithfully,
           ⚠️ Legal Disclaimer
         </h3>
         <p className="text-sm text-amber-700 dark:text-amber-300 leading-relaxed">
-          The Legal Notice Generator provides general information based on the details provided. It does not constitute formal legal advice and does not create an attorney-client relationship. Laws vary by jurisdiction and are subject to interpretation. Always consult with a qualified legal professional before sending any formal legal notice.
+          The Legal Notice Generator provides general information based on the
+          details provided. It does not constitute formal legal advice and does
+          not create an attorney-client relationship. Laws vary by jurisdiction
+          and are subject to interpretation. Always consult with a qualified
+          legal professional before sending any formal legal notice.
         </p>
       </div>
     </div>

@@ -7,8 +7,8 @@ serve(async (req: Request) => {
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization"
-      }
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      },
     });
   }
 
@@ -22,23 +22,26 @@ serve(async (req: Request) => {
           status: 400,
           headers: {
             "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*"
-          }
-        }
+            "Access-Control-Allow-Origin": "*",
+          },
+        },
       );
     }
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${Deno.env.get("OPENROUTER_API_KEY")}`,
-        "Content-Type": "application/json"
+    const response = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${Deno.env.get("OPENROUTER_API_KEY")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "mistralai/mistral-small-3.2-24b-instruct:free",
+          messages,
+        }),
       },
-      body: JSON.stringify({
-        model: "mistralai/mistral-small-3.2-24b-instruct:free",
-        messages
-      }),
-    });
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -48,34 +51,28 @@ serve(async (req: Request) => {
           status: 500,
           headers: {
             "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*"
-          }
-        }
+            "Access-Control-Allow-Origin": "*",
+          },
+        },
       );
     }
 
     const data = await response.json();
     const answer = data.choices?.[0]?.message?.content || "No answer found.";
 
-    return new Response(
-      JSON.stringify({ answer }),
-      {
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*"
-        }
-      }
-    );
+    return new Response(JSON.stringify({ answer }), {
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      },
+    });
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: err.message }),
-      {
-        status: 500,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*"
-        }
-      }
-    );
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500,
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      },
+    });
   }
 });

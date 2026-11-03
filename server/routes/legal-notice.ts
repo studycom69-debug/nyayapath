@@ -4,7 +4,8 @@ import fetch from "node-fetch";
 
 export const handleGenerateNotice: RequestHandler = async (req, res) => {
   try {
-    const { userName, opponentName, issueType, date, location, description } = req.body as LegalNoticeRequest;
+    const { userName, opponentName, issueType, date, location, description } =
+      req.body as LegalNoticeRequest;
 
     const apiKey = process.env.OPENAI_API_KEY;
 
@@ -60,21 +61,27 @@ The notice should:
 Output ONLY the text of the legal notice.
 `;
 
-    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json"
+    const openaiResponse = await fetch(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          temperature: 0.5,
+          messages: [
+            {
+              role: "system",
+              content: "You are a professional legal document generator.",
+            },
+            { role: "user", content: systemPrompt },
+          ],
+        }),
       },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        temperature: 0.5,
-        messages: [
-          { role: "system", content: "You are a professional legal document generator." },
-          { role: "user", content: systemPrompt }
-        ]
-      })
-    });
+    );
 
     if (!openaiResponse.ok) {
       const errorText = await openaiResponse.text();
@@ -83,7 +90,8 @@ Output ONLY the text of the legal notice.
     }
 
     const data = (await openaiResponse.json()) as any;
-    const aiContent = data.choices?.[0]?.message?.content || "AI failed to generate content.";
+    const aiContent =
+      data.choices?.[0]?.message?.content || "AI failed to generate content.";
 
     const response: LegalNoticeResponse = {
       content: aiContent,
