@@ -1,4 +1,3 @@
-import serverless from "serverless-http";
-import { createServer } from "../server";
+import { createServer } from "../server/index.js";
 
-export default serverless(createServer());
+export default createServer();
